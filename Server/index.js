@@ -174,25 +174,27 @@ app.post("/follow/:id",auth,async(req,res)=>{
     res.send("user not found")
    }
 
-   let alreadyFollw=currentUser.following.includes(targetUserId)
-   console.log(alreadyFollw,"helloo");
+   let alreadyFollow=currentUser.following.includes(targetUserId)
+   console.log(alreadyFollow,"helloo");
    
-   if(alreadyFollw){
-    currentUser.following=     currentUser.following.filter((id)=>{
-      return id.toString()!=targetUserId
+   if (alreadyFollow) {
+    currentUser.following = currentUser.following.filter(
+      id => id.toString() !== targetUserId.toString()
+    );
 
-    })
-   targetUser.followers=   targetUser.followers.filter((id)=>{
-      return id.toString()!=currentUserId
+    targetUser.followers = targetUser.followers.filter(
+      id => id.toString() !== currentUserId.toString()
+    );
 
-  
-        
-    })
-         await currentUser.save()
-           await targetUser.save()
-           res.json("unfollowww.....")
+    await currentUser.save();
+    await targetUser.save();
 
-   }
+    return res.json({
+      success: true,
+      msg: "Unfollowed successfully"
+    });
+  }
+
 
 
     //  followers
