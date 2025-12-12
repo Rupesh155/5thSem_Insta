@@ -238,7 +238,7 @@ app.post("/follow/:id",auth,async(req,res)=>{
             ]
 
           }).select("-passWord")
-          .limit(1)
+          .limit(5)
           res.json({msg:isMatch})
           console.log(isMatch);
           
@@ -268,6 +268,44 @@ app.get("/me", auth, async (req, res) => {
   } catch (err) {
     console.error("GET /me error:", err);
     res.status(500).json({ msg: "Server error" });
+  }
+});
+
+
+
+
+// Add this in your server file (where auth is available)
+app.post("/comment/:postId", auth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { text } = req.body;
+    const userId = req.user._id; // from token
+
+    if (!text) return res.status(400).json({ msg: "text required" });
+    if (!postId) return res.status(400).json({ msg: "postId required" });
+
+    // Optional: check post exists
+    const post = await Upload.findById(postId);
+    if (!post) return res.status(404).json({ msg: "Post not found" });
+
+    const newComment = new Comment({
+      text,
+      post: postId,
+      user: userId
+    });
+
+    await newComment.save();
+
+    // Optionally populate and return
+    const populated = await newComment.populate("user", "name email").execPopulate?.() || await Comment.findById(newComment._id).populate("user", "name email");
+
+    return res.status(201).json({
+      msg: "Comment added successfully",
+      comment: populated
+    });
+  } catch (error) {
+    console.error("COMMENT ADD ERROR:", error);
+    return res.status(500).json({ msg: "Server error", error: error.message });
   }
 });
 
