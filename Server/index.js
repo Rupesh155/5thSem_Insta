@@ -2,14 +2,24 @@ let express= require('express')
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 let User=require('./User')
+require("dotenv").config();
 let mongoose= require('mongoose')
 let Upload =require('./Upload')
 let Comment =require('./Coment')
 const Story = require("./story");
-mongoose.connect('mongodb://127.0.0.1:27017/insta').then(()=>{
-    console.log("db.....");
+// mongoose.connect('mongodb://127.0.0.1:27017/insta').then(()=>{
+//     console.log("db.....");
     
-})
+// })
+
+
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log("MongoDB Atlas Connected"))
+  .catch(err => console.log(err));
+
+
+
+
 let cors= require('cors')
 
 let app=  express()
