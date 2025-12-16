@@ -5,6 +5,7 @@ let User=require('./User')
 let mongoose= require('mongoose')
 let Upload =require('./Upload')
 let Comment =require('./Coment')
+const Story = require("./story");
 mongoose.connect('mongodb://127.0.0.1:27017/insta').then(()=>{
     console.log("db.....");
     
@@ -36,6 +37,12 @@ app.post("/signUp", async (req, res) => {
      return  res.status(500).json({ msg: "Error during signup", error: err.message });
     }
   });
+
+
+
+
+
+
 
 
   app.post("/login", async (req, res) => {
@@ -91,20 +98,86 @@ let auth = function(req, res, next) {
         return res.status(401).json({ message: "Invalid token" });
     }
 };
-app.post('/upload', auth, async(req,res)=>{
-  const userId = req.user._id;  
-  const { imgUrl } = req.body;
-  if(!imgUrl){
-      return res.send("URL not found")
-  }
-  let uploadD = new Upload({
-      imgUrl,
-      user: userId,      
-      likedBy: []
+
+
+
+app.post("/story", auth, async (req, res) => {
+  const { mediaUrl } = req.body;
+  if (!mediaUrl) return res.status(400).json({ msg: "media required" });
+
+  const story = new Story({
+    mediaUrl,
+    user: req.user._id,
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+  });
+
+  await story.save();
+  res.json({ msg: "Story uploaded" });
+});
+
+
+
+app.get("/stories", auth, async (req, res) => {
+  const me = await User.findById(req.user._id);
+
+  const allowedUsers = [
+    req.user._id,
+    ...me.following,
+    ...me.followers,
+  ];
+
+  const stories = await Story.find({
+    user: { $in: allowedUsers },
+    expiresAt: { $gt: new Date() }, // not expired
   })
-  await uploadD.save();
-  return res.send("uploaded");
-})
+    .populate("user", "name")
+    .sort({ createdAt: -1 });
+
+  res.json(stories);
+});
+
+// app.post('/upload', auth, async(req,res)=>{
+//   const userId = req.user._id;  
+//   const { imgUrl } = req.body;
+//   if(!imgUrl){
+//       return res.send("URL not found")
+//   }
+//   let uploadD = new Upload({
+//       imgUrl,
+//       user: userId,      
+//       likedBy: []
+//   })
+//   await uploadD.save();
+//   return res.send("uploaded");
+// })
+
+
+app.get("/upload", auth, async (req, res) => {
+  try {
+    const posts = await Upload.find()
+      .populate("user", "name")
+      .sort({ createdAt: -1 });
+
+    const postsWithCount = await Promise.all(
+      posts.map(async (post) => {
+        const count = await Comment.countDocuments({
+          post: post._id,
+        });
+
+        return {
+          ...post.toObject(),
+          commentsCount: count, // 🔥 VERY IMPORTANT
+        };
+      })
+    );
+
+    res.json(postsWithCount);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 
 
 // Uploads ko fetch karne ke liye
@@ -309,6 +382,23 @@ app.post("/comment/:postId", auth, async (req, res) => {
   }
 });
 
+// Get comments for a particular post
+app.get("/comments/:postId", async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const comments = await Comment.find({ post: postId })
+      .populate("user", "name email")   // 
+      .sort({ createdAt: 1 });         
+
+    res.json(comments);
+  } catch (err) {
+    console.log("GET COMMENTS ERROR:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
+
 // Current user ke posts
 app.get("/my-posts", auth, async (req, res) => {
   try {
@@ -321,6 +411,9 @@ app.get("/my-posts", auth, async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 });
+
+
+
 
 app.post("/:postId", async (req, res) => {
   try {
@@ -432,3 +525,8 @@ app.listen(4000,()=>{
 
 
 
+
+// [1,2,3,4,5,6]
+
+
+// 5
