@@ -25,7 +25,6 @@ const SignUp = () => {
     try {
       // ✅ Backend ke route ke hisaab se URL change kiya
       const res = await axios.post("http://localhost:4000/signUp", formData);
-
       // Backend se aata hai: { msg: "Signup successful", user: newUser }
       alert(res.data.msg || "Registration successful!");
 
@@ -135,5 +134,8 @@ const SignUp = () => {
     </div>
   );
 };
-
 export default SignUp;
+
+
+
+  //Gsoc
