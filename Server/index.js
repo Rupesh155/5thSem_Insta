@@ -7,19 +7,23 @@ let mongoose= require('mongoose')
 let Upload =require('./Upload')
 let Comment =require('./Coment')
 const Story = require("./story");
-// mongoose.connect('mongodb://127.0.0.1:27017/insta').then(()=>{
-//     console.log("db.....");
+// 🔥 CHAT ADDITIONS (ONLY NEW)
+const http = require("http");
+const initSocket = require("./socket");
+const Message = require("./Message");
+mongoose.connect('mongodb://127.0.0.1:27017/insta').then(()=>{
+    console.log("db.....");
     
-// })
+})
+
+// in2QttpjVGJnihb9
+// sam
+// mongodb+srv://<db_username>:<db_password>@cluster0.9chuxff.mongodb.net/
 
 
-mongoose.connect(process.env.MONGO_URL)
-  .then(() => console.log("MongoDB Atlas Connected"))
-  .catch(err => console.log(err));
-
-
-
-
+// mongoose.connect(process.env.MONGO_URL)
+//   .then(() => console.log("MongoDB Atlas Connected"))
+//   .catch(err => console.log(err));
 let cors= require('cors')
 
 let app=  express()
@@ -30,7 +34,7 @@ app.get('/',(req,res)=>{
 
 })
 
-
+// https://fivethsem-insta-3.onrender.com/
 
 app.post("/signUp", async (req, res) => {
     try {
@@ -108,17 +112,23 @@ let auth = function(req, res, next) {
         return res.status(401).json({ message: "Invalid token" });
     }
 };
+module.exports.auth = auth;
+
 
 
 
 app.post("/story", auth, async (req, res) => {
-  const { mediaUrl } = req.body;
-  if (!mediaUrl) return res.status(400).json({ msg: "media required" });
+  const { mediaUrl, visibility } = req.body;
+
+  if (!mediaUrl) {
+    return res.status(400).json({ msg: "media required" });
+  }
 
   const story = new Story({
     mediaUrl,
     user: req.user._id,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+    visibility: visibility || "public",
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
   });
 
   await story.save();
@@ -126,6 +136,35 @@ app.post("/story", auth, async (req, res) => {
 });
 
 
+app.post("/close-friend/:id", auth, async (req, res) => {
+  const me = await User.findById(req.user._id);
+  const targetId = req.params.id;
+
+  if (me.closeFriends.includes(targetId)) {
+    return res.json({ msg: "Already close friend" });
+  }
+
+  me.closeFriends.push(targetId);
+  await me.save();
+
+  res.json({ msg: "Added to close friends" });
+});
+//Remove from Close Friends
+app.delete("/close-friend/:id", auth, async (req, res) => {
+  const me = await User.findById(req.user._id);
+
+  me.closeFriends = me.closeFriends.filter(
+    id => id.toString() !== req.params.id
+  );
+
+  await me.save();
+  res.json({ msg: "Removed from close friends" });
+});
+
+
+
+
+app.use("/chat", require("./chat"));
 
 app.get("/stories", auth, async (req, res) => {
   const me = await User.findById(req.user._id);
@@ -146,20 +185,20 @@ app.get("/stories", auth, async (req, res) => {
   res.json(stories);
 });
 
-// app.post('/upload', auth, async(req,res)=>{
-//   const userId = req.user._id;  
-//   const { imgUrl } = req.body;
-//   if(!imgUrl){
-//       return res.send("URL not found")
-//   }
-//   let uploadD = new Upload({
-//       imgUrl,
-//       user: userId,      
-//       likedBy: []
-//   })
-//   await uploadD.save();
-//   return res.send("uploaded");
-// })
+app.post('/upload', auth, async(req,res)=>{
+  const userId = req.user._id;  
+  const { imgUrl } = req.body;
+  if(!imgUrl){
+      return res.send("URL not found")
+  }
+  let uploadD = new Upload({
+      imgUrl,
+      user: userId,      
+      likedBy: []
+  })
+  await uploadD.save();
+  return res.send("uploaded");
+})
 
 
 app.get("/upload", auth, async (req, res) => {
@@ -277,7 +316,6 @@ app.post("/follow/:id",auth,async(req,res)=>{
    console.log(alreadyFollow==targetUser);
    
    
-         
 
    if (alreadyFollow) {
     currentUser.following = currentUser.following.filter(
@@ -454,89 +492,71 @@ app.post("/:postId", async (req, res) => {
 });
 
 
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(4000, () => {
+  console.log("🚀 Server + Chat Socket running on port 4000");
+});
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-app.listen(4000,()=>{
-    console.log("server running on port no 4000");
-    
-})
-
-
-// //Model   comment.js
+// // //Model   comment.js
      
-// let mongoose=  require('mongoose')
+// // let mongoose=  require('mongoose')
 
-// let commenrtSchema=  new mongoose.Schema({
-//   comment:{
-//     type:String,
-//   },
-//   user:{
-//     type:mongoose.Schema.ObjectId,
-//     ref:"User"
-//   },
-//   post:{
-//      type:mongoose.Schema.ObjectId,
-//     ref:"Upload"
+// // let commenrtSchema=  new mongoose.Schema({
+// //   comment:{
+// //     type:String,
+// //   },
+// //   user:{
+// //     type:mongoose.Schema.ObjectId,
+// //     ref:"User"
+// //   },
+// //   post:{
+// //      type:mongoose.Schema.ObjectId,
+// //     ref:"Upload"
 
-//   }
+// //   }
 
-// })
+// // })
    
-//  let Comment=  mongoose.model("Comment",commenrtSchema)
-//  module.exports=Comment
+// //  let Comment=  mongoose.model("Comment",commenrtSchema)
+// //  module.exports=Comment
 
 
-//   //api 
+// //   //api 
 
-//   app.post('/comment/:postId',  async(req,res)=>{
-//     let {postId}=req.params;
-//              let userID=     req.user._id
-//           let {text} =   req.body
-//           if(!text){
-//             res.send("textttt")
+// //   app.post('/comment/:postId',  async(req,res)=>{
+// //     let {postId}=req.params;
+// //              let userID=     req.user._id
+// //           let {text} =   req.body
+// //           if(!text){
+// //             res.send("textttt")
 
-//           }
+// //           }
   
-//           let commentData=  new Comment({
-//             text,
-//             post:postId,
-//             user:userID
+// //           let commentData=  new Comment({
+// //             text,
+// //             post:postId,
+// //             user:userID
             
-//           })
+// //           })
          
-//        await commentData.save()
-//        return res.json({
-//         msg:"Comment added...",
+// //        await commentData.save()
+// //        return res.json({
+// //         msg:"Comment added...",
         
-//        })
+// //        })
 
 
-                
-
-//   })
-
-
+      
+// //   })
+// // [1,2,3,4,5,6]
 
 
+// // 5
 
 
 
-// [1,2,3,4,5,6]
 
-
-// 5
+// // Gsoc

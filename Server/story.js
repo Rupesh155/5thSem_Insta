@@ -10,6 +10,11 @@ const storySchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    visibility: {
+      type: String,
+      enum: ["public", "private"],
+      default: "public"
+    },
   },
   { timestamps: true }
 );

@@ -15,7 +15,13 @@ const userSchema = new mongoose.Schema({
     ref: "User",
   
 
-  }]
+  }],
+  closeFriends: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }
+  ]
 });
 
 const User = mongoose.model("User", userSchema);
