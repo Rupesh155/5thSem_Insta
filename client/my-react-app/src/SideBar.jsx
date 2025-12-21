@@ -298,6 +298,7 @@ const Sidebar = () => {
   const isActive = (path) =>
     location.pathname === path ? "font-semibold" : "font-normal";
 
+  const admin = JSON.parse(localStorage.getItem("user"));
   // ================= SEARCH =================
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -459,12 +460,17 @@ const Sidebar = () => {
                   </div>
 
                   <button
+                    disabled = {admin._id == user._id}
                     onClick={() => handleFollowToggle(user._id)}
                     className={`px-3 py-1 text-sm rounded ${
                       followingSet.has(user._id)
                         ? "border border-gray-600"
                         : "bg-blue-500"
-                    }`}
+                    }
+                      ${
+                        admin._id == user._id ? "opacity-50 cursor-not-allowed" : ""
+                      }
+                    `}
                   >
                     {followingSet.has(user._id) ? "Following" : "Follow"}
                   </button>
